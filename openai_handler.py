@@ -6,8 +6,9 @@ import os
 import base64
 from typing import Optional, List, Dict
 from openai import OpenAI
-from utils.text_humanizer import humanize_text, ensure_proper_formatting
-from utils.prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
+from text_humanizer import humanize_text, ensure_proper_formatting
+from prompts import DR_VALDES_SYSTEM_PROMPT, ...
+
 
 
 def get_client():
@@ -473,4 +474,5 @@ def generate_work_pipeline(
         return {"final": final_text, "comments": comments}
     except Exception as e:
         return {"final": f"Error generant el treball: {str(e)}", "comments": ""}
+
 
