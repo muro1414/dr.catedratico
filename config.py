@@ -32,8 +32,8 @@ DEFAULT_TEMPERATURE = 0.7
 
 # Mensajes del Dr. Valdés
 VALDEZ_QUIRKS = [
-    "en parbulos enseñan a limpiarse el culo con tus trabajos"
-    "a e i o u borriquito como tu"
+    "en párvulos enseñan a limpiarse el culo con tus trabajos",
+    "a e i o u borriquito como tú",
     "sabes leer entre líneas?",
     "¿No te parece un poco simplista eso?",
     "¿De verdad crees eso?",
