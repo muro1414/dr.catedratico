@@ -5,14 +5,19 @@ Manejo de la API de OpenAI para GPT-4o
 import os
 import base64
 from typing import Optional, List, Dict
-from dotenv import load_dotenv
 from openai import OpenAI
-from text_humanizer import humanize_text, ensure_proper_formatting
-from prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
+from utils.text_humanizer import humanize_text, ensure_proper_formatting
+from utils.prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
 
-load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def get_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY no encontrada en el entorno")
+    return OpenAI(api_key=api_key)
+
+client = get_client()
+
 
 
 def sanitize_output(text: str) -> str:
@@ -468,3 +473,4 @@ def generate_work_pipeline(
         return {"final": final_text, "comments": comments}
     except Exception as e:
         return {"final": f"Error generant el treball: {str(e)}", "comments": ""}
+
