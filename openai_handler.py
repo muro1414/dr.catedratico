@@ -1,5 +1,5 @@
 """
-Manejo de la API de OpenAI para GPT-4o
+Manejo de la API de OpenAI con selección dinámica de modelos
 """
 
 import os
@@ -7,8 +7,10 @@ import base64
 from typing import Optional, List, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
-from text_humanizer import humanize_text, ensure_proper_formatting
+from text_humanizer import humanize_text, ensure_proper_formatting, adjust_sections_to_word_counts
 from prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
+from config import MODEL_SELECTION_RULES, DEFAULT_MODEL, AVAILABLE_MODELS
+from section_limits import get_section_limits, get_section_instructions
 
 load_dotenv()
 
@@ -22,6 +24,40 @@ def get_client():
     return OpenAI(api_key=api_key)
 
 client = get_client()
+
+
+def select_model(
+    context: str = "chat",
+    complexity: float = 0.5,
+    force_model: Optional[str] = None
+) -> str:
+    """
+    Selecciona el modelo GPT más apropiado según el contexto y complejidad.
+    
+    Args:
+        context: Tipo de tarea ('chat', 'analysis', 'generation', 'vision', 'simple')
+        complexity: Nivel de complejidad (0.0-1.0, donde 1.0 es máxima)
+        force_model: Si se proporciona, ignora la selección automática
+    
+    Returns:
+        Nombre del modelo a usar
+    """
+    # Si el usuario fuerza un modelo específico, usarlo
+    if force_model and force_model in AVAILABLE_MODELS:
+        return force_model
+    
+    # Selección automática basada en contexto y complejidad
+    base_model = MODEL_SELECTION_RULES.get(context, DEFAULT_MODEL)
+    
+    # Ajustar modelo según complejidad si es chat o generation
+    if context in ["chat", "generation"] and complexity > 0.8:
+        # Para tareas muy complejas, usar gpt-4-turbo
+        return "gpt-4-turbo"
+    elif context in ["chat", "generation"] and complexity < 0.3:
+        # Para tareas simples, usar gpt-4.5-turbo
+        return "gpt-4.5-turbo"
+    
+    return base_model
 
 
 
@@ -111,22 +147,31 @@ def chat_with_valdez(
     system_prompt: str,
     temperature: float = 0.7,
     max_tokens: int = 2000,
+    context: str = "chat",
+    complexity: float = 0.5,
+    force_model: Optional[str] = None,
 ) -> str:
     """
-    Envía un mensaje a GPT-4o con la personalidad del Dr. Valdés.
+    Envía un mensaje a OpenAI con la personalidad del Dr. Valdés.
+    Selecciona automáticamente el mejor modelo según el contexto.
     
     Args:
         messages: Lista de mensajes en formato OpenAI
         system_prompt: Prompt del sistema personalizado
         temperature: Temperatura para variabilidad (0.7 es buena para el sarcasmo)
         max_tokens: Máximo de tokens de respuesta
+        context: Tipo de tarea ('chat', 'analysis', 'generation', 'vision', 'simple')
+        complexity: Nivel de complejidad (0.0-1.0)
+        force_model: Fuerza un modelo específico
     
     Returns:
         La respuesta del Dr. Valdés
     """
+    model = select_model(context=context, complexity=complexity, force_model=force_model)
+    
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 *messages
@@ -142,19 +187,24 @@ def chat_with_valdez(
 def analyze_image_with_valdez(
     image_path: str,
     system_prompt: str,
-    query: str = "Analiza este gráfico o imagen. Incluye aspectos metodológicos, estadísticos si aplica."
+    query: str = "Analiza este gráfico o imagen. Incluye aspectos metodológicos, estadísticos si aplica.",
+    force_model: Optional[str] = None,
 ) -> str:
     """
-    Analiza una imagen usando GPT-4o vision.
+    Analiza una imagen usando GPT con visión.
+    Usa gpt-4o por defecto ya que tiene mejor visión.
     
     Args:
         image_path: Ruta a la imagen
         system_prompt: Prompt del sistema
         query: Pregunta o instrucción sobre la imagen
+        force_model: Fuerza un modelo específico (recomendado: gpt-4o)
     
     Returns:
         Análisis de la imagen
     """
+    model = force_model or select_model(context="vision")  # Vision usa gpt-4o
+    
     try:
         with open(image_path, "rb") as image_file:
             image_data = base64.standard_b64encode(image_file.read()).decode("utf-8")
@@ -171,7 +221,7 @@ def analyze_image_with_valdez(
         media_type = media_type_map.get(ext, "image/jpeg")
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -200,24 +250,30 @@ def analyze_image_with_valdez(
 def extract_text_from_pdf_with_valdez(
     pdf_text: str,
     system_prompt: str,
-    custom_query: Optional[str] = None
+    custom_query: Optional[str] = None,
+    complexity: float = 0.7,
+    force_model: Optional[str] = None
 ) -> str:
     """
-    Analiza el contenido de un PDF usando GPT-4o.
+    Analiza el contenido de un PDF usando el mejor modelo según complejidad.
     
     Args:
         pdf_text: Contenido extraído del PDF
         system_prompt: Prompt del sistema (usualmente ANALYSIS_SYSTEM_PROMPT)
         custom_query: Pregunta específica del usuario
+        complexity: Nivel de complejidad del análisis (0.0-1.0)
+        force_model: Fuerza un modelo específico
     
     Returns:
         Análisis del PDF
     """
+    model = select_model(context="analysis", complexity=complexity, force_model=force_model)
+    
     try:
         query = custom_query or "Analiza este trabajo académico. Incluye: errores APA 7, fortalezas metodológicas, debilidades, sugerencias de mejora."
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -241,6 +297,8 @@ def generate_academic_work(
     word_count: Optional[int] = None,
     quality_level: int = 7,
     temperature: float = 0.8,
+    complexity: float = 0.8,
+    force_model: Optional[str] = None,
 ) -> str:
     """
     Genera un trabajo académico usando un proceso de dos pasos:
@@ -255,11 +313,19 @@ def generate_academic_work(
         word_count: Palabras estimadas
         quality_level: 5-10 (para humanización del texto)
         temperature: Temperatura del modelo
+        complexity: Nivel de complejidad (0.0-1.0)
+        force_model: Fuerza un modelo específico
     
     Returns:
         El trabajo académico generado, humanizado y sanitizado
     """
+    model = select_model(context="generation", complexity=complexity, force_model=force_model)
+    
     try:
+        # Obtener límites de secciones
+        section_limits = get_section_limits("research_paper")
+        section_instructions = get_section_instructions(section_limits)
+        
         # PASO A: Generar esquema interno con decisiones metodológicas
         length_line = f"Longitud aproximada: {word_count} palabras" if word_count else "Longitud: según necesario para el tema"
         idioma_line = f"Idioma objetivo: {language_hint}" if language_hint else "Idioma: automático (igual que el usuario)"
@@ -274,6 +340,8 @@ REQUISITOS ADICIONALES:
 {requirements}
 
 {idioma_line}
+
+{section_instructions}
 
 INSTRUCCIÓN ESPECIAL - PASO A (ESQUEMA INTERNO):
 Genera un esquema realista con las decisiones metodológicas clave. NO escribas el trabajo completo todavía.
@@ -293,7 +361,7 @@ Respon NOMÉS amb aquest esquema, sense el treball complet.
 
         # Generar esquema
         schema_response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": GENERATION_VALDES_HARD_PROMPT},
                 {"role": "user", "content": schema_prompt}
@@ -329,7 +397,7 @@ Genera el trabajo académico completo siguiendo el esquema metodológico anterio
 """
 
         work_response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": GENERATION_VALDES_HARD_PROMPT},
                 {"role": "user", "content": work_prompt}
@@ -343,8 +411,12 @@ Genera el trabajo académico completo siguiendo el esquema metodológico anterio
         # Sanitizar meta-discurso
         work = sanitize_output(work)
         
-        # Humanizar el texto según nivel especificado
-        work = humanize_text(work, quality_level=quality_level)
+        # Humanizar el texto según nivel especificado y ajustar a conteo de palabras
+        work = humanize_text(work, quality_level=quality_level, target_words=word_count)
+        
+        # Ajustar cada sección a su límite de palabras
+        work = adjust_sections_to_word_counts(work, section_limits, language="es")
+        
         work = ensure_proper_formatting(work)
         
         return work
@@ -429,14 +501,19 @@ def generate_work_pipeline(
     word_count: Optional[int],
     temperature: float,
     quality_level: int,
+    complexity: float = 0.7,
+    force_model: Optional[str] = None,
 ) -> Dict[str, str]:
     """Genera borrador, evalúa y reescribe versión final. Devuelve {'final','comments'}.
+    Selecciona automáticamente el mejor modelo según complejidad.
     """
+    model = select_model(context="generation", complexity=complexity, force_model=force_model)
+    
     try:
         # 1. Borrador
         draft_prompt = _make_draft_prompt(topic, requirements, language, word_count)
         draft_resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": GENERATION_VALDES_STRICT_PROMPT},
                 {"role": "user", "content": draft_prompt},
@@ -449,7 +526,7 @@ def generate_work_pipeline(
         # 2. Evaluación
         eval_prompt = _make_eval_prompt(grade_target, language, draft)
         eval_resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": GENERATION_VALDES_STRICT_PROMPT},
                 {"role": "user", "content": eval_prompt},
@@ -462,7 +539,7 @@ def generate_work_pipeline(
         # 3. Reescritura final
         rewrite_prompt = _make_rewrite_prompt(grade_target, language, topic, requirements, draft, comments, word_count)
         final_resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[
                 {"role": "system", "content": GENERATION_VALDES_STRICT_PROMPT},
                 {"role": "user", "content": rewrite_prompt},
@@ -472,7 +549,12 @@ def generate_work_pipeline(
         )
         final_text = final_resp.choices[0].message.content
 
-        final_text = humanize_text(final_text, quality_level=quality_level)
+        final_text = humanize_text(final_text, quality_level=quality_level, target_words=word_count)
+        
+        # Ajustar cada sección a su límite de palabras
+        section_limits = get_section_limits("research_paper")
+        final_text = adjust_sections_to_word_counts(final_text, section_limits, language="es")
+        
         final_text = ensure_proper_formatting(final_text)
 
         return {"final": final_text, "comments": comments}

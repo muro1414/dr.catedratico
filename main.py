@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 
 import streamlit as st
 
+from config import AVAILABLE_MODELS
 from prompts import get_system_prompt
 from openai_handler import (
     chat_with_valdez,
@@ -16,6 +17,8 @@ from openai_handler import (
     generate_work_pipeline,
 )
 from file_processor import prepare_context_from_files
+from validators import validate_section_word_counts
+from section_limits import get_section_limits
 
 
 # Configuración de la página
@@ -65,6 +68,20 @@ with st.sidebar:
         step=0.1,
         help="Más alto = más variabilidad y sarcasmo. Más bajo = más consistente.",
     )
+
+    st.markdown("#### 🤖 Modelo GPT")
+    model_choice = st.selectbox(
+        "Seleccionar modelo",
+        ["Automático (según contexto)", "gpt-4-turbo", "gpt-4.5", "gpt-4.5-turbo", "gpt-4o"],
+        help="Automático: elige el mejor modelo según la tarea. gpt-4-turbo: análisis profundo. gpt-4.5: equilibrio calidad/velocidad. gpt-4.5-turbo: máxima velocidad. gpt-4o: visión avanzada.",
+    )
+    
+    # Convertir selección a None si es automático
+    force_model = None if model_choice == "Automático (según contexto)" else model_choice
+    
+    # Guardar en session state
+    st.session_state.force_model = force_model
+    st.caption(f"✓ Usando: {model_choice}")
 
     language_choice = st.selectbox(
         "Idioma de salida",
@@ -193,6 +210,9 @@ def handle_command(user_text: str, context_block: str, temperature: float, grade
             system_prompt=system_prompt,
             temperature=temperature,
             max_tokens=1800,
+            context="analysis",
+            complexity=0.7,
+            force_model=st.session_state.get("force_model"),
         )
 
     if lower.startswith("/generar"):
@@ -213,7 +233,7 @@ def handle_command(user_text: str, context_block: str, temperature: float, grade
         grade_band = band_map.get(grade_choice, "7-8")
         lang_hint = None if language_choice == "Automático" else ("ca" if language_choice == "Català" else ("es" if language_choice == "Castellano" else "en"))
 
-        return generate_academic_work(
+        work = generate_academic_work(
             topic=topic,
             requirements=requirements,
             grade_band=grade_band,
@@ -221,7 +241,38 @@ def handle_command(user_text: str, context_block: str, temperature: float, grade
             word_count=word_count,
             quality_level=complexity_score,
             temperature=temperature,
+            complexity=complexity_score / 10.0,
+            force_model=st.session_state.get("force_model"),
         )
+        
+        # Mostrar trabajo
+        st.markdown("## 📄 Trabajo Generado")
+        st.markdown(work)
+        
+        # Validar límites por sección (silenciosa, solo alertas si hay problemas)
+        section_limits = get_section_limits("research_paper")
+        section_validation = validate_section_word_counts(
+            work,
+            section_limits,
+            language="es"
+        )
+        
+        # Solo mostrar alerta si hay problemas
+        if section_validation['non_compliant_sections'] > 0:
+            st.divider()
+            st.warning(
+                f"⚠️ {section_validation['non_compliant_sections']} sección(es) fuera de límites:\n\n"
+                + "\n".join([f"• {issue}" for issue in section_validation['issues'][:3]]),
+                icon="⚠️"
+            )
+        else:
+            st.divider()
+            st.success(
+                f"✓ Todas las secciones cumplen los límites de palabras",
+                icon="✓"
+            )
+        
+        return ""
 
     return ""
 
@@ -278,6 +329,9 @@ if user_input := st.chat_input("Escribe o usa comandos /nota, /generar"):
             system_prompt=system_prompt,
             temperature=temperature,
             max_tokens=2000,
+            context="chat",
+            complexity=0.5,
+            force_model=st.session_state.get("force_model"),
         )
 
     st.session_state.chat_history.append(user_message)
