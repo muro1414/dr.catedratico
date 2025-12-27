@@ -15,39 +15,33 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 AVAILABLE_MODELS = {
     "gpt-4-turbo": {
         "name": "GPT-4 Turbo",
-        "use_case": "análisis complejo, visión",
-        "cost": "bajo",
-        "speed": "rápido"
-    },
-    "gpt-4.5": {
-        "name": "GPT-4.5",
-        "use_case": "equilibrio calidad/velocidad",
+        "use_case": "análisis complejo, precisión máxima",
         "cost": "medio",
-        "speed": "muy rápido"
-    },
-    "gpt-4.5-turbo": {
-        "name": "GPT-4.5 Turbo",
-        "use_case": "máxima velocidad, tareas simples",
-        "cost": "bajo",
-        "speed": "ultra rápido"
+        "speed": "rápido"
     },
     "gpt-4o": {
         "name": "GPT-4o (omni)",
-        "use_case": "visión avanzada, multimodal",
+        "use_case": "equilibrio calidad/velocidad, visión",
         "cost": "medio",
-        "speed": "rápido"
+        "speed": "muy rápido"
+    },
+    "gpt-3.5-turbo": {
+        "name": "GPT-3.5 Turbo",
+        "use_case": "tareas simples, máxima velocidad",
+        "cost": "bajo",
+        "speed": "ultra rápido"
     }
 }
 
-DEFAULT_MODEL = "gpt-4.5"  # Modelo por defecto
+DEFAULT_MODEL = "gpt-4o"  # Modelo por defecto
 
 # Mapeo de contexto a modelo recomendado
 MODEL_SELECTION_RULES = {
     "analysis": "gpt-4-turbo",      # Análisis de trabajos/PDFs: precisión
-    "generation": "gpt-4.5",        # Generación de contenido: equilibrio
+    "generation": "gpt-4o",         # Generación de contenido: equilibrio
     "vision": "gpt-4o",             # Análisis de imágenes
-    "chat": "gpt-4.5",              # Chat general: velocidad
-    "simple": "gpt-4.5-turbo",      # Preguntas simples: máxima velocidad
+    "chat": "gpt-4o",               # Chat general: velocidad
+    "simple": "gpt-3.5-turbo",      # Preguntas simples: máxima velocidad
 }
 
 # Configuración de Streamlit

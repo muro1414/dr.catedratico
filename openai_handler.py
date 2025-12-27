@@ -25,7 +25,6 @@ def get_client():
 
 client = get_client()
 
-
 def select_model(
     context: str = "chat",
     complexity: float = 0.5,
@@ -49,13 +48,13 @@ def select_model(
     # Selección automática basada en contexto y complejidad
     base_model = MODEL_SELECTION_RULES.get(context, DEFAULT_MODEL)
     
-    # Ajustar modelo según complejidad si es chat o generation
-    if context in ["chat", "generation"] and complexity > 0.8:
-        # Para tareas muy complejas, usar gpt-4-turbo
+    # Ajustar modelo según complejidad
+    if complexity > 0.8:
+        # Para tareas muy complejas, usar gpt-4-turbo (máxima potencia)
         return "gpt-4-turbo"
-    elif context in ["chat", "generation"] and complexity < 0.3:
-        # Para tareas simples, usar gpt-4.5-turbo
-        return "gpt-4.5-turbo"
+    elif complexity < 0.3:
+        # Para tareas simples, usar gpt-3.5-turbo (máxima velocidad)
+        return "gpt-3.5-turbo"
     
     return base_model
 

@@ -72,8 +72,8 @@ with st.sidebar:
     st.markdown("#### 🤖 Modelo GPT")
     model_choice = st.selectbox(
         "Seleccionar modelo",
-        ["Automático (según contexto)", "gpt-4-turbo", "gpt-4.5", "gpt-4.5-turbo", "gpt-4o"],
-        help="Automático: elige el mejor modelo según la tarea. gpt-4-turbo: análisis profundo. gpt-4.5: equilibrio calidad/velocidad. gpt-4.5-turbo: máxima velocidad. gpt-4o: visión avanzada.",
+        ["Automático (según contexto)", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"],
+        help="Automático: elige el mejor modelo según la tarea. gpt-4-turbo: máxima precisión. gpt-4o: equilibrio calidad/velocidad. gpt-3.5-turbo: máxima velocidad.",
     )
     
     # Convertir selección a None si es automático
