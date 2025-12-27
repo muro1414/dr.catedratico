@@ -50,7 +50,7 @@ st.session_state.setdefault("attachments", [])
 
 # Verificar API key
 if not os.getenv("OPENAI_API_KEY"):
-    st.error("⚠️ ERROR: No se encontró OPENAI_API_KEY en las variables de entorno. Configura tu .env file")
+    st.error("⚠️ ERROR: No se encontró OPENAI_API_KEY en las variables de entorno. Configura tu archivo .env")
     st.stop()
 
 

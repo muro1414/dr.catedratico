@@ -6,8 +6,8 @@ import os
 import base64
 from typing import Optional, List, Dict
 from openai import OpenAI
-from utils.text_humanizer import humanize_text, ensure_proper_formatting
-from utils.prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
+from text_humanizer import humanize_text, ensure_proper_formatting
+from prompts import DR_VALDES_SYSTEM_PROMPT, GENERATION_VALDES_STRICT_PROMPT, GENERATION_VALDES_HARD_PROMPT
 
 
 
