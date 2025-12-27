@@ -8,14 +8,14 @@ from typing import List, Dict, Optional
 
 import streamlit as st
 
-from prompts import get_system_prompt
-from openai_handler import (
+from utils.prompts import get_system_prompt
+from utils.openai_handler import (
     chat_with_valdez,
     generate_academic_work,
     build_context_block,
     generate_work_pipeline,
 )
-from file_processor import prepare_context_from_files
+from utils.file_processor import prepare_context_from_files
 
 
 # Configuración de la página
