@@ -1,0 +1,56 @@
+# Entorno virtual
+venv/
+env/
+ENV/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+.env
+.env.local
+
+# Streamlit
+.streamlit/
+*.streamlit.server.uploadedFileManager.py
+
+# Archivos temporales
+*.tmp
+temp/
+tmp/
+
+# Caches
+.cache/
+__pycache__/
+
+# Logs
+*.log
+logs/
+
+# PDFs y archivos cargados (excepto ejemplos)
+uploads/
+!example_files/
+*.pdf
+!template*.pdf
+
+# Imágenes temporales
+temp_images/
+*.tmp.jpg
+*.tmp.png
