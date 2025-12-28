@@ -3,7 +3,7 @@
 
 echo ""
 echo "========================================"
-echo "Dr. Valdés - Psychology Professor AI"
+echo "Dr. Sanal - Psychology Professor AI"
 echo "UOC Application Launcher"
 echo "========================================"
 echo ""
@@ -62,7 +62,7 @@ fi
 # Iniciar aplicación
 echo ""
 echo "========================================"
-echo "Iniciando Dr. Valdés..."
+echo "Iniciando Dr. Sanal..."
 echo "========================================"
 echo ""
 echo "La aplicación se abrirá en: http://localhost:8501"

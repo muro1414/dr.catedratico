@@ -1,6 +1,6 @@
-# Dr. Valdés - Psychology Professor AI
+# Dr. Sanal - Psychology Professor AI
 
-System prompt y configuraciones para el Dr. Valdés, catedrático de psicología de la UOC.
+System prompt y configuraciones para el Dr. Sanal, catedrático de psicología de la UOC.
 
 ## Instalación
 
@@ -17,7 +17,7 @@ System prompt y configuraciones para el Dr. Valdés, catedrático de psicología
 ## Ejecución
 
 ```bash
-streamlit run app/main.py
+streamlit run main.py
 ```
 
 ## Características
@@ -31,8 +31,8 @@ streamlit run app/main.py
 
 ## Estructura
 
-- `app/main.py`: Aplicación principal de Streamlit
-- `utils/openai_handler.py`: Manejo de la API de OpenAI
-- `utils/file_processor.py`: Procesamiento de archivos
-- `utils/statistical_analyzer.py`: Análisis estadístico
-- `utils/prompts.py`: Definición de prompts del Dr. Valdés
+- `main.py`: Aplicación principal de Streamlit
+- `openai_handler.py`: Manejo de la API de OpenAI
+- `file_processor.py`: Procesamiento de archivos
+- `statistical_analyzer.py`: Análisis estadístico
+- `prompts.py`: Definición del system prompt maestro del Dr. Sanal

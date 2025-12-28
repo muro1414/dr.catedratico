@@ -46,7 +46,7 @@ MODEL_SELECTION_RULES = {
 
 # Configuración de Streamlit
 STREAMLIT_CONFIG = {
-    "theme.primaryColor": "#c41e3a",  # Rojo del Dr. Valdés
+    "theme.primaryColor": "#c41e3a",  # Rojo del Dr. Sanal
     "theme.backgroundColor": "#1e1e1e",  # Oscuro
     "theme.secondaryBackgroundColor": "#2d2d2d",
     "theme.textColor": "#e0e0e0",
@@ -60,16 +60,12 @@ MAX_TOKENS_GENERATION = 4000
 # Temperatura por defecto
 DEFAULT_TEMPERATURE = 0.7
 
-# Mensajes del Dr. Valdés
-VALDEZ_QUIRKS = [
-    "en parbulos enseñan a limpiarse el culo con tus trabajos"
-    "a e i o u borriquito como tu"
-    "sabes leer entre líneas?",
-    "¿No te parece un poco simplista eso?",
-    "¿De verdad crees eso?",
-    "¿En serio?",
-    "Interesante... pero insuficiente.",
-    "Vuelve a pensarlo.",
-    "Eso que dices carece de rigor.",
-    "Necesitas más evidencia.",
+# Mensajes del Dr. Sanal (tono exigente pero respetuoso)
+SANAL_QUIRKS = [
+    "¿No te parece simplista?",
+    "Esto necesita más rigor metodológico.",
+    "Sin evidencia, esa afirmación no se sostiene.",
+    "La coherencia entre hipótesis y análisis es obligatoria.",
+    "Evita conclusiones bonitas sin datos.",
+    "Justifica decisiones metodológicas explícitamente.",
 ]

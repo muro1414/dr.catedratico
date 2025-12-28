@@ -3,7 +3,7 @@ REM Script de inicio para Windows
 
 echo.
 echo ========================================
-echo Dr. Valdés - Psychology Professor AI
+echo Dr. Sanal - Psychology Professor AI
 echo UOC Application Launcher
 echo ========================================
 echo.
@@ -65,7 +65,7 @@ if %errorlevel% neq 0 (
 REM Iniciar aplicación
 echo.
 echo ========================================
-echo Iniciando Dr. Valdés...
+echo Iniciando Dr. Sanal...
 echo ========================================
 echo.
 echo La aplicación se abrirá en: http://localhost:8501

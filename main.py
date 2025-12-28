@@ -1,5 +1,5 @@
 """
-Aplicación principal de Streamlit - Dr. Valdés, ahora con chat unificado y adjuntos.
+Aplicación principal de Streamlit - Dr. Sanal, sistema académico sin límites artificiales.
 """
 
 import os
@@ -8,22 +8,18 @@ from typing import List, Dict, Optional
 
 import streamlit as st
 
-from config import AVAILABLE_MODELS
 from prompts import get_system_prompt
 from openai_handler import (
-    chat_with_valdez,
-    generate_academic_work,
+    chat_with_sanal,
+    generate_academic_work_phased,
     build_context_block,
-    generate_work_pipeline,
 )
 from file_processor import prepare_context_from_files
-from validators import validate_section_word_counts
-from section_limits import get_section_limits
 
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Dr. Valdés - Profesor de Psicología",
+    page_title="Dr. Sanal - Profesor de Psicología",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -59,58 +55,11 @@ if not os.getenv("OPENAI_API_KEY"):
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### ⚙️ Configuración")
-    temperature = st.slider(
-        "Temperatura (sarcasmo/precisión):",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.7,
-        step=0.1,
-        help="Más alto = más variabilidad y sarcasmo. Más bajo = más consistente.",
-    )
-
-    st.markdown("#### 🤖 Modelo GPT")
-    model_choice = st.selectbox(
-        "Seleccionar modelo",
-        ["Automático (según contexto)", "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"],
-        help="Automático: elige el mejor modelo según la tarea. gpt-4-turbo: máxima precisión. gpt-4o: equilibrio calidad/velocidad. gpt-3.5-turbo: máxima velocidad.",
-    )
-    
-    # Convertir selección a None si es automático
-    force_model = None if model_choice == "Automático (según contexto)" else model_choice
-    
-    # Guardar en session state
-    st.session_state.force_model = force_model
-    st.caption(f"✓ Usando: {model_choice}")
-
+    st.markdown("### ⚙️ Configuración simple")
     language_choice = st.selectbox(
         "Idioma de salida",
         ["Automático", "Català", "Castellano", "English"],
         help="Si eliges Automático, responde en el idioma del usuario.",
-    )
-
-    grade_choice = st.selectbox(
-        "Nota/rigor objetivo",
-        [
-            "0-3 Suspenso grave",
-            "4 Suspenso",
-            "5 Aprobado",
-            "6-7 Bien",
-            "8-9 Notable",
-            "10 Matrícula de Honor",
-        ],
-    )
-
-    complexity_choice = st.select_slider(
-        "Complejidad/estilo",
-        options=["5/10 – Muy natural", "6/10 – Natural con rigor", "7/10 – Equilibrado", "8/10 – Académico formal", "9/10 – Muy técnico", "10/10 – Máxima complejidad"],
-        value="7/10 – Equilibrado",
-    )
-
-    word_count_raw = st.text_input(
-        "Longitud deseada para /generar (palabras, opcional)",
-        placeholder="Ej: 2500",
-        help="Sin límite interno; se usa el valor que indiques o el que escribas en tu mensaje.",
     )
 
     st.divider()
@@ -164,10 +113,11 @@ with st.sidebar:
     st.markdown("### ℹ️ Acerca de")
     st.markdown(
         """
-        **Dr. Valdés** es un sistema de apoyo académico diseñado para:
+        **Dr. Sanal** es un sistema de apoyo académico diseñado para:
         - Análisis crítico de trabajos (APA 7, metodología)
         - Análisis estadístico riguroso
-        - Generación de trabajos con tono exigente
+        - Generación de trabajos optimizados para máxima calidad
+        - SIN límites artificiales de palabras ni notas objetivo
         """
     )
 
@@ -175,7 +125,7 @@ with st.sidebar:
 # Header
 col1, col2 = st.columns([0.8, 0.2])
 with col1:
-    st.markdown("### 🎓 Dr. Valdés - Catedrático de Psicología")
+    st.markdown("### 🎓 Dr. Sanal - Catedrático de Psicología")
     st.markdown("*Universitat Oberta de Catalunya - Departamento de Psicología*")
 with col2:
     st.markdown(f"📅 {datetime.now().strftime('%d/%m/%Y')}")
@@ -191,7 +141,7 @@ for message in st.session_state.chat_history:
         st.markdown(message["content"])
 
 
-def handle_command(user_text: str, context_block: str, temperature: float, grade_choice: str, complexity_choice: str, language_choice: str, word_count: Optional[int], attachments: List[Dict]) -> str:
+def handle_command(user_text: str, context_block: str, language_choice: str, attachments: List[Dict]) -> str:
     """Gestiona comandos especiales como /nota o /generar."""
     lower = user_text.lower()
 
@@ -201,91 +151,74 @@ def handle_command(user_text: str, context_block: str, temperature: float, grade
         st.rerun()
 
     if lower.startswith("/nota"):
-        question = user_text[len("/nota"):].strip() or "Califica el trabajo adjunto con nota 0-10 y justifica APA/metodología/coherencia."
+        question = user_text[len("/nota"):].strip() or "Califica el trabajo adjunto con nota 0-10 REAL basada en criterios UOC y justifica APA/metodología/coherencia."
         system_prompt = get_system_prompt("analysis")
-        control = f"Idioma: {language_choice}. Nota objetivo: {grade_choice}." if language_choice != "Automático" else f"Nota objetivo: {grade_choice}." 
+        control = f"Idioma: {language_choice}." if language_choice != "Automático" else ""
         content = f"{context_block}\n\n{control}\n\nInstrucción: {question}"
-        return chat_with_valdez(
+        # Guardar texto para contador de tokens
+        st.session_state["last_prompt_text"] = f"SYSTEM:\n{get_system_prompt('analysis')}\n\nUSER:\n{content}"
+        return chat_with_sanal(
             messages=[{"role": "user", "content": build_content_with_images(content, attachments)}],
             system_prompt=system_prompt,
-            temperature=temperature,
-            max_tokens=1800,
+            temperature=0.7,
+            max_tokens=3000,
             context="analysis",
             complexity=0.7,
-            force_model=st.session_state.get("force_model"),
+            force_model=None,
         )
 
     if lower.startswith("/generar"):
         rest = user_text[len("/generar"):].strip()
         topic = rest or "Trabajo académico solicitado"
-        requirements = f"Usa los adjuntos como insumo. Detalles del usuario: {rest}\n\n{context_block}"
-        complexity_score = int(complexity_choice.split("/")[0])
-        lang = language_choice if language_choice != "Automático" else "auto"
-        # Map grade_choice to bands
-        band_map = {
-            "0-3 Suspenso grave": "0-4",
-            "4 Suspenso": "0-4",
-            "5 Aprobado": "5-6",
-            "6-7 Bien": "6-7",
-            "8-9 Notable": "8-9",
-            "10 Matrícula de Honor": "9-10",
-        }
-        grade_band = band_map.get(grade_choice, "7-8")
+        requirements = f"Usa los adjuntos como insumo. Detalles del usuario: {rest}"
         lang_hint = None if language_choice == "Automático" else ("ca" if language_choice == "Català" else ("es" if language_choice == "Castellano" else "en"))
 
-        work = generate_academic_work(
+        work = generate_academic_work_phased(
             topic=topic,
             requirements=requirements,
-            grade_band=grade_band,
+            attachments=st.session_state.attachments,
             language_hint=lang_hint,
-            word_count=word_count,
-            quality_level=complexity_score,
-            temperature=temperature,
-            complexity=complexity_score / 10.0,
-            force_model=st.session_state.get("force_model"),
         )
-        
-        # Mostrar trabajo
+
         st.markdown("## 📄 Trabajo Generado")
         st.markdown(work)
-        
-        # Validar límites por sección (silenciosa, solo alertas si hay problemas)
-        section_limits = get_section_limits("research_paper")
-        section_validation = validate_section_word_counts(
-            work,
-            section_limits,
-            language="es"
-        )
-        
-        # Solo mostrar alerta si hay problemas
-        if section_validation['non_compliant_sections'] > 0:
-            st.divider()
-            st.warning(
-                f"⚠️ {section_validation['non_compliant_sections']} sección(es) fuera de límites:\n\n"
-                + "\n".join([f"• {issue}" for issue in section_validation['issues'][:3]]),
-                icon="⚠️"
-            )
-        else:
-            st.divider()
-            st.success(
-                f"✓ Todas las secciones cumplen los límites de palabras",
-                icon="✓"
-            )
-        
+        st.divider()
+        st.success("✓ Trabajo generado con arquitectura por fases (estable)", icon="✓")
         return ""
 
     return ""
 
 
-def parse_word_count(raw: str) -> Optional[int]:
-    """Convierte un input libre en entero de palabras si aplica."""
-    if not raw:
-        return None
-    cleaned = ''.join(ch for ch in raw if ch.isdigit())
-    try:
-        return int(cleaned) if cleaned else None
-    except ValueError:
-        return None
+def looks_truncated(text: str) -> bool:
+    """Heurística simple para detectar respuestas cortadas."""
+    if not text or len(text) < 200:
+        return False
+    tail = text[-200:]
+    # Incompleto si no termina con puntuación fuerte
+    ends_ok = any(text.strip().endswith(p) for p in [".", "!", "?", ")", "]", "\""])
+    has_heading = any(h in tail.lower() for h in ["referencias", "bibliografía", "discusión", "resultados"])
+    mid_word_cut = tail.endswith(" ") and not ends_ok
+    return (not ends_ok) or mid_word_cut or has_heading
+
+
+def continue_generation(previous_text: str, language_hint: Optional[str], attachments: List[Dict]) -> str:
+    """Solicita continuación del texto sin repetir contenido previo."""
+    lang_line = f"Idioma: {language_hint}" if language_hint else "Idioma: automático"
+    instruction = f"""
+Continúa el trabajo EXACTAMENTE desde donde se quedó.
+No repitas contenido previo. Mantén estructura académica.
+Si estaba en medio de una sección, complétala y continúa.
+{lang_line}
+"""
+    return chat_with_sanal(
+        messages=[{"role": "user", "content": build_content_with_images(previous_text + "\n\n" + instruction, attachments)}],
+        system_prompt=get_system_prompt("generation"),
+        temperature=0.7,
+        max_tokens=8000,
+        context="generation",
+        complexity=0.8,
+        force_model=None,
+    )
 
 
 def build_content_with_images(text_block: str, attachments: List[Dict]) -> List[Dict]:
@@ -305,11 +238,10 @@ def build_content_with_images(text_block: str, attachments: List[Dict]) -> List[
 if user_input := st.chat_input("Escribe o usa comandos /nota, /generar"):
     user_message = {"role": "user", "content": user_input}
     context_block = build_context_block(st.session_state.attachments)
-    control_block = f"Idioma seleccionado: {language_choice}. Nota objetivo: {grade_choice}. Complejidad: {complexity_choice}."
-    desired_words = parse_word_count(word_count_raw)
+    control_block = f"Idioma seleccionado: {language_choice}."
 
     # Ejecutar comandos primero
-    response = handle_command(user_input, context_block, temperature, grade_choice, complexity_choice, language_choice, desired_words, st.session_state.attachments)
+    response = handle_command(user_input, context_block, language_choice, st.session_state.attachments)
 
     if not response:  # Chat normal
         system_prompt = get_system_prompt("chat")
@@ -324,14 +256,17 @@ if user_input := st.chat_input("Escribe o usa comandos /nota, /generar"):
             }
         ]
 
-        response = chat_with_valdez(
+        # Guardar prompt para contador
+        st.session_state["last_prompt_text"] = f"SYSTEM:\n{get_system_prompt('chat')}\n\nUSER:\n{context_block}\n\n{control_block}\n\nMensaje: {user_input}"
+
+        response = chat_with_sanal(
             messages=messages_for_api,
             system_prompt=system_prompt,
-            temperature=temperature,
-            max_tokens=2000,
+            temperature=0.7,
+            max_tokens=3000,
             context="chat",
             complexity=0.5,
-            force_model=st.session_state.get("force_model"),
+            force_model=None,
         )
 
     st.session_state.chat_history.append(user_message)
@@ -344,7 +279,7 @@ st.divider()
 st.markdown(
     """
 ---
-**Dr. Valdés** - Sistema de Apoyo Académico | UOC Psicología  
-*"La mediocridad académica no es disculpable"* - Dr. Valdés
+**Dr. Sanal** - Sistema de Apoyo Académico | UOC Psicología  
+*"La excelencia académica no es negociable"* - Dr. Sanal
 """
 )
